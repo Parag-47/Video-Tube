@@ -56,7 +56,9 @@ const createOrUpdatePlaylist = asyncHandler(async (req, res) => {
 
   res
     .status(201)
-    .json(new ApiResponse(200, true, "Playlist Created Successfully!", data));
+    .json(
+      new ApiResponse(200, true, "Playlist Created Successfully!", playlist)
+    );
 });
 
 const getUserPlaylists = asyncHandler(async (req, res) => {
@@ -64,13 +66,20 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 
   const playlists = await Playlist.find({ owner: userId }).select("-__v");
 
-  if (!playlists) throw new ApiError(400, "No Playlists Found!");
-
-  res
-    .status(200)
-    .json(
-      new ApiResponse(200, true, "Playlist(s) Fetched Successfully!", playlists)
-    );
+  if (Array.isArray(playlists) && playlists.length > 0) {
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          true,
+          "Playlist(s) Fetched Successfully!",
+          playlists
+        )
+      );
+  } else {
+    throw new ApiError(400, "No Playlists Found!");
+  }
 });
 
 const getPlaylistById = asyncHandler(async (req, res) => {
@@ -87,15 +96,16 @@ const getPlaylistById = asyncHandler(async (req, res) => {
     );
 });
 
-const addVideoToPlaylist = asyncHandler(async (req, res) => {
-  const { playlistId, videoId } = req.params;
-  //No Need!
+const getPlaylists = asyncHandler(async (req, res) => {
+  const { query } = req.query;
+  //Fetch All The Playlists Matching The Search Query
 });
 
+// Replace find with findById
 const addRemoveVideoFromPlaylist = asyncHandler(async (req, res) => {
   const { playlistId, videoId } = req.query;
   const userId = req.user._id;
-  
+
   if (!playlistId || !videoId)
     throw new ApiError(400, "PlaylistID Or VideoID Not Found!");
 
@@ -103,7 +113,7 @@ const addRemoveVideoFromPlaylist = asyncHandler(async (req, res) => {
     _id: playlistId,
     owner: userId,
   }).select("-__v");
-  
+
   if (Array.isArray(playlist) && playlist.length > 0) {
     const doesVideoExists = playlist[0].videos.includes(videoId);
     console.log("Duplicate: ", doesVideoExists);
@@ -170,21 +180,67 @@ const addRemoveVideoFromPlaylist = asyncHandler(async (req, res) => {
 
 const deletePlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.query;
-  
+  const userId = req.user?._id;
+
+  if (!playlistId || !userId)
+    throw new ApiError(400, "PlaylistId Or UserId Not Found!");
+
+  const playlist = await Playlist.findById(playlistId, { owner: userId });
+
+  if (!playlist) throw new ApiError(400, "Playlist Not Found!");
+
+  const deletedPlaylist = await Playlist.findByIdAndDelete(playlistId);
+
+  if (!deletedPlaylist)
+    throw new ApiError(500, "Failed To Delete The Playlist!");
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, true, "Playlist Deleted Successfully!"));
 });
 
-const updatePlaylist = asyncHandler(async (req, res) => {
-  const { playlistId } = req.params;
-  const { name, description } = req.body;
-  //TODO: update playlist
+const updatePlaylistDetails = asyncHandler(async (req, res) => {
+  const { playlistId } = req.query;
+  const { name, description, isPrivate = true } = req.body;
+  const userId = req.user?._id;
+
+  if (!playlistId) throw new ApiError(400, "Playlist Id Not Found!");
+  if (!name || !description)
+    throw new ApiError(400, "Name Or Description Is Missing!");
+  if (!userId) throw new ApiError(400, "User Id Not Found!");
+
+  const playlist = await Playlist.findById(playlistId, { owner: userId });
+  if (!playlist) throw new ApiError(400, "Playlist Not Found!");
+
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
+    playlistId,
+    {
+      name,
+      description,
+      isPrivate,
+    },
+    { new: true }
+  ).select("-__v");
+  if (!updatedPlaylist)
+    throw new ApiError(500, "Couldn't Update Playlist Details!");
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        true,
+        "Playlist Details Updated Successfully!",
+        updatedPlaylist
+      )
+    );
 });
 
 export {
   createOrUpdatePlaylist,
   getUserPlaylists,
   getPlaylistById,
-  addVideoToPlaylist,
   addRemoveVideoFromPlaylist,
   deletePlaylist,
-  updatePlaylist,
+  updatePlaylistDetails,
 };
