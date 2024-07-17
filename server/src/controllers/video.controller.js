@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
@@ -5,7 +6,8 @@ import { fileUploader, fileDeleter } from "../utils/cloudinary.js";
 import { User } from "../models/user.model.js";
 import { Video } from "../models/video.model.js";
 
-//Not Complete Yet!
+//Not Complete Yet! 
+//Should Add Pipeline So Owners Felid Is Populated!
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType } = req.query;
 
@@ -23,15 +25,48 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.query;
-
+  console.log("VideoId: ", videoId);
   if (!videoId) throw new ApiError(200, "Couldn't Find Video ID!");
 
-  const { isPublished, ...rest } = await Video.findById(videoId).select("-__v");
-  const videoDetails = rest;
+  const videoDetails = await Video.aggregate([
+    {
+      $match: {
+        _id: mongoose.Types.ObjectId.createFromHexString(videoId),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          {
+            $project: {
+              fullName: 1,
+              userName: 1,
+              avatar: 1,
+              coverImage: 1,
+              createdAt: 1,
+              updatedAt: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        owner: {
+          $first: "$owner",
+        },
+      },
+    },
+  ]);
 
   if (!videoDetails) throw new ApiError(500, "Failed To Fetch The Video!");
 
-  if (isPublished === false) throw new ApiError(404, "No video Found!");
+  if (videoDetails.isPublished === false)
+    throw new ApiError(404, "No video Found!");
 
   res
     .status(200)
@@ -230,13 +265,17 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
       isPublished: false,
     });
     if (!unpublished) throw new ApiError(500, "Failed To Unpublish Video!");
-    res.status(200).json(new ApiResponse(200, true, "Video Unpublished Successfully!"));
+    res
+      .status(200)
+      .json(new ApiResponse(200, true, "Video Unpublished Successfully!"));
   } else {
     const Published = await Video.findByIdAndUpdate(videoDetails._id, {
       isPublished: true,
     });
     if (!Published) throw new ApiError(500, "Failed To Publish Video!");
-    res.status(200).json(new ApiResponse(200, true, "Video Published Successfully!"));
+    res
+      .status(200)
+      .json(new ApiResponse(200, true, "Video Published Successfully!"));
   }
 });
 

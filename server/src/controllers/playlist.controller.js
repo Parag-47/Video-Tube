@@ -1,4 +1,4 @@
-import { isValidObjectId } from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import { Playlist } from "../models/playlist.model.js";
 import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
@@ -47,6 +47,7 @@ const createOrUpdatePlaylist = asyncHandler(async (req, res) => {
 
   //Needs Improvement!
   if (!playlist) throw new ApiError(500, "Failed To Create New Playlist!");
+
   //Not working don't know why -_-
   /*const POJO = JSON.parse(JSON.stringify(playlist));
   POJO.videos.pop();
@@ -54,19 +55,88 @@ const createOrUpdatePlaylist = asyncHandler(async (req, res) => {
   const data = POJO.videos.push(JSON.parse(JSON.stringify(videoDetails)));
   console.log("Test: ", data);*/
 
+  //Workaround Just Sending The Playlist and Videos Data Separately Rather Than Making A Whole Another Database Call!
+
+  const data = [playlist, videoDetails]; //Which I Still Might Have To Make Caz The Owner Felid Is Not Populated But Do I Really Need It?
+
   res
     .status(201)
-    .json(
-      new ApiResponse(200, true, "Playlist Created Successfully!", playlist)
-    );
+    .json(new ApiResponse(200, true, "Playlist Created Successfully!", data));
 });
 
 const getUserPlaylists = asyncHandler(async (req, res) => {
   const userId = req.user?._id;
 
-  const playlists = await Playlist.find({ owner: userId }).select("-__v");
+  //const playlists = await Playlist.find({ owner: userId }).select("-__v");
 
-  if (Array.isArray(playlists) && playlists.length > 0) {
+  const playlists = await Playlist.aggregate([
+    {
+      $match: {
+        owner: userId,
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        let: { videos: "$videos" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $in: ["$_id", "$$videos"] },
+            },
+          },
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullName: 1,
+                    userName: 1,
+                    avatar: 1,
+                    coverImage: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner",
+              },
+            },
+          },
+          {
+            $project: {
+              __v: 0,
+            },
+          },
+        ],
+        as: "videos",
+      },
+    },
+    {
+      $project: {
+        __v: 0,
+      },
+    },
+  ]);
+
+  if (!playlists.length) throw new ApiError(400, "No Playlists Found!");
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, true, "Playlist(s) Fetched Successfully!", playlists)
+    );
+
+  /*if (Array.isArray(playlists) && playlists.length > 0) {
     res
       .status(200)
       .json(
@@ -79,15 +149,75 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
       );
   } else {
     throw new ApiError(400, "No Playlists Found!");
-  }
+  }*/
 });
 
 const getPlaylistById = asyncHandler(async (req, res) => {
   const { playlistId } = req.query;
   if (!playlistId) throw new ApiError(400, "Playlist Id Not Found!");
 
-  const playlist = await Playlist.findById(playlistId).select("-__v");
-  if (!playlist) throw new ApiError(404, "Playlist Not Found!");
+  //const playlist = await Playlist.findById(playlistId).select("-__v");
+
+  const playlist = await Playlist.aggregate([
+    {
+      $match: {
+        _id: mongoose.Types.ObjectId.createFromHexString(playlistId),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        let: { videos: "$videos" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $in: ["$_id", "$$videos"] },
+            },
+          },
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullName: 1,
+                    userName: 1,
+                    avatar: 1,
+                    coverImage: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner",
+              },
+            },
+          },
+          {
+            $project: {
+              __v: 0,
+            },
+          },
+        ],
+        as: "videos",
+      },
+    },
+    {
+      $project: {
+        __v: 0,
+      },
+    },
+  ]);
+
+  if (!playlist.length) throw new ApiError(404, "Playlist Not Found!");
 
   res
     .status(200)

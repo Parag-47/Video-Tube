@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import userRouter from "./routes/user.routes.js";
+import likeRouter from "./routes/likes.routes.js";
 import videoRouter from "./routes/video.routes.js";
 import playlistRouter from "./routes/playlist.routes.js";
 import subscriptionRouter from "./routes/subscription.routes.js";
@@ -21,6 +22,7 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/likes", likeRouter);
 app.use("/api/v1/video", videoRouter);
 app.use("/api/v1/playlist", playlistRouter);
 app.use("/api/v1/subscriptions", subscriptionRouter);
