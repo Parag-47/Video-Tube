@@ -9,6 +9,7 @@ import { Video } from "../models/video.model.js";
 //Test The Action Model!
 
 //Add Thumbnail To Playlist.
+//Let The user Create Empty Playlists.
 //Optional: Restrict User From Adding Duplicate Videos And Check If The Video User Trying To Add Is Published(Visible) Or Not And Maybe Add Option To Upload Multiple Videos.
 const createOrUpdatePlaylist = asyncHandler(async (req, res) => {
   const { name, description, videoId } = req.body;
@@ -64,6 +65,7 @@ const createOrUpdatePlaylist = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, true, "Playlist Created Successfully!", data));
 });
 
+//Check The Old Pipeline(Probably Won't Work ^_^)
 const getUserPlaylists = asyncHandler(async (req, res) => {
   const userId = req.user?._id;
 

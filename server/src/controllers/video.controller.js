@@ -227,7 +227,8 @@ const videoUpdate = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Video Details Updated Successfully!"));
 });
 
-//Wrong, Validate The VideoId With isValidObjectId function from Mongoose
+//When The Video Is Deleted All It's Comments And Likes Should Also Be Deleted*
+//Validate The VideoId With isValidObjectId function from Mongoose
 const videoDelete = asyncHandler(async (req, res) => {
   const id = await User.findById(req.user?._id).select("_id");
 

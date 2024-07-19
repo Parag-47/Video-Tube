@@ -263,7 +263,7 @@ const updatePassword = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, true, "Password Updated Successfully!"));
 });
-
+//Check If The Email Is Already In Use!
 const updateAccountDetails = asyncHandler(async (req, res) => {
   const { userName, email, fullName } = req.body;
 
