@@ -150,6 +150,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const cookieData = await generateAccessAndRefreshTokens(user._id);
 
+  if(!cookieData) throw new ApiError(500, "Something Went Wrong While Generating Cookies!");
   //console.log("Cookie Data: ", cookieData.user);
 
   res
@@ -274,9 +275,9 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
   )
     throw new ApiError(400, "All Fields Are Required!");
 
-  const isUserNameTaken = await User.findOne({ userName });
+  const isUserNameOrEmailTaken = await User.findOne({ $or: [{"userName": userName}, {"email": email }] });
 
-  if (isUserNameTaken) throw new ApiError(400, "This Username Is Taken!");
+  if (isUserNameOrEmailTaken) throw new ApiError(400, "The Username Or Email Is Already Taken!");
 
   const user = await User.findByIdAndUpdate(
     req.user?._id,
@@ -292,10 +293,17 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
   if (!user) throw new ApiError(500, "Can't Find The User!");
 
+  const cookieData = await generateAccessAndRefreshTokens(user._id);
+
+  if(!cookieData) throw new ApiError(500, "Something Went Wrong While Generating Cookies!");
+  //console.log("Cookie Data: ", cookieData.user);
+
   res
     .status(200)
+    .cookie("accessToken", cookieData.accessToken, cookieOptions)
+    .cookie("refreshToken", cookieData.refreshToken, cookieOptions)
     .json(
-      new ApiResponse(200, true, "User Details Updated Successfully!", user)
+      new ApiResponse(200, true, "User Details Updated Successfully!", cookieData)
     );
 });
 
