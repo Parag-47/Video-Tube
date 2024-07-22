@@ -4,7 +4,6 @@ import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 const getChannelStats = asyncHandler(async (req, res) => {
-  const { skip, limit, shortBy } = getPagination(req.query);
   const userId = req.user?._id;
 
   if(!userId) throw new ApiError(404, "User Id Not Found!");
