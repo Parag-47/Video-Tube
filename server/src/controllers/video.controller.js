@@ -7,7 +7,6 @@ import { User } from "../models/user.model.js";
 import { Video } from "../models/video.model.js";
 
 //Not Complete Yet! 
-//Should Add Pipeline So Owners Felid Is Populated!
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType } = req.query;
 

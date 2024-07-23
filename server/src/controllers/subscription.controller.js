@@ -94,8 +94,6 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 
   if(!channelSubscribers) throw new ApiError(500, "Couldn't Fetch The Subscribers!");
 
-  console.log("Channel Subscribers: ", channelSubscribers);
-
   res.status(200).json(new ApiResponse(200, true, "Successfully Fetched Subscribers List", channelSubscribers[0]));
 });
 
@@ -141,8 +139,6 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
   ]);
 
   if(!subscribedChannels) throw new ApiError(500, "Couldn't Fetch The Subscribers!");
-
-  console.log("Channel Subscribers: ", subscribedChannels);
 
   res.status(200).json(new ApiResponse(200, true, "Successfully Fetched Subscribed Channels List", subscribedChannels[0]));
 });
