@@ -241,7 +241,7 @@ const videoDelete = asyncHandler(async (req, res) => {
 
   if (!videoDetails) throw new ApiError(500, "Can't Find The File!");
 
-  //Deletes All The Comments And Replies On The Video!
+  //Deletes All The Comments And Replies And There Likes/Dislikes Of The Video!
   const comments = await Comment.aggregate([
     {
       $match: {
@@ -286,13 +286,17 @@ const videoDelete = asyncHandler(async (req, res) => {
 
   const commentIdsForDeletion = commentIds.concat(repliesIds);
 
-  const deleteComments = await Comment.deleteMany({_id:{ $in: commentIdsForDeletion }});
+  //Delete Likes And Dislikes Of The Comments!
+  await Like.updateMany({$pull: {likedCommentIds: {$in: commentIdsForDeletion}}});
+  await Like.updateMany({$pull: {dislikedCommentIds: {$in: commentIdsForDeletion}}});
+
+  //Delete All The Comments!
+  await Comment.deleteMany({_id:{ $in: commentIdsForDeletion }});
 
   //Deletes All The Likes And Dislikes On The Video!
-
+  await Like.updateMany({$pull: {likedVideoIds: videoDetails._id}});
+  await Like.updateMany({$pull: {dislikedVideoIds: videoDetails._id}});
   
-
-  return res.status(200).json(new ApiResponse(200, "Video Deleted Successfully!"));
   //Deletes The Video File And Thumbnail From Cloudinary!
   const deleted = await fileDeleter(
     videoDetails.videoFile,
