@@ -30,7 +30,7 @@ videoRouter.post(
   videoUpload
 );
 
-videoRouter.get("/delete", verifyJWT, videoDelete);
+videoRouter.delete("/delete", verifyJWT, videoDelete);
 
 videoRouter.patch(
   "/update",
