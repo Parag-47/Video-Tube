@@ -264,22 +264,29 @@ const updatePassword = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, true, "Password Updated Successfully!"));
 });
-//Check If The Email Is Already In Use!
+//Needs Improvement!
 const updateAccountDetails = asyncHandler(async (req, res) => {
   const { userName, email, fullName } = req.body;
 
-  if (
-    !userName.toLowerCase() ||
-    !email.toLowerCase() ||
-    !fullName.toLowerCase()
-  )
-    throw new ApiError(400, "All Fields Are Required!");
+  const updateObj = {};
 
-  const isUserNameOrEmailTaken = await User.findOne({ $or: [{"userName": userName}, {"email": email }] });
+  if (
+    !userName&&
+    !email&&
+    !fullName
+  )
+    throw new ApiError(400, "At Least One Field Is Required!");
+
+  //Check The Response If One Of The Field Is Undefined!  
+  const isUserNameOrEmailTaken = await User.findOne({ $or: [{"userName": userName.toLowerCase()}, {"email": email.toLowerCase() }] });
 
   if (isUserNameOrEmailTaken) throw new ApiError(400, "The Username Or Email Is Already Taken!");
 
-  const user = await User.findByIdAndUpdate(
+  if(!userName && !email)  updateObj.fullName = fullName;
+  else if(!userName && !fullName) updateObj.email= email;
+  else if(!fullName && !email) updateObj.userName = userName;
+  
+    const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
@@ -296,7 +303,6 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
   const cookieData = await generateAccessAndRefreshTokens(user._id);
 
   if(!cookieData) throw new ApiError(500, "Something Went Wrong While Generating Cookies!");
-  //console.log("Cookie Data: ", cookieData.user);
 
   res
     .status(200)

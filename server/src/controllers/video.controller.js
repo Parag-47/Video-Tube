@@ -28,7 +28,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.query;
-  console.log("VideoId: ", videoId);
+  
   if (!videoId) throw new ApiError(200, "Couldn't Find Video ID!");
 
   const videoDetails = await Video.aggregate([
