@@ -25,11 +25,6 @@ async function generateAccessAndRefreshTokens(userId) {
       $set: { refreshToken },
     }).select("-password -refreshToken -__v");
 
-    //Didn't worked for some reason
-    //delete user.password;
-    //delete user.__v;
-    //delete user.refreshToken;
-
     return { accessToken, refreshToken, loggedInUser };
   } catch (error) {
     console.error("Error while generating tokens, Error: ", error);
@@ -49,10 +44,9 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const existedUser = await User.findOne({
     $or: [{ email }, { userName }],
-  }).catch((error) => {
-    console.error("Error while checking if user already exists: ", error);
   });
 
+  if(existedUser) throw new ApiError(400, "This Email Or User Name Already Exists!");
   //console.log("ExistedUser: ", existedUser);
 
   //Doesn't Work
